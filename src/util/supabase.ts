@@ -74,15 +74,14 @@ export const characterAtomFamily = atomFamily(
         const newData = { ...prev };
         switch (action.type) {
           case 'adversity':
-            newData.adversity = action.newValue;
+            const adversity = action.newValue;
+            if (adversity < 0) return;
+            newData.adversity = adversity;
             set(baseAtomFamily(id), newData);
             if (!action.remote) {
               await supabase
                 .from('adversity')
-                .upsert(
-                  { player: id, adversity: action.newValue, session_id },
-                  { onConflict: 'player' }
-                );
+                .upsert({ player: id, adversity, session_id }, { onConflict: 'player' });
             }
             break;
           case 'status':
