@@ -73,7 +73,7 @@ function App() {
               style={{ margin: 16 }}
               align="start"
               styles={{
-                item: { flex: '1 0 400px', minWidth: 400, maxWidth: 550, margin: '0 auto' },
+                item: { flex: '1 0 350px', maxWidth: 550, margin: '0 auto' },
               }}
             >
               {sortedCharacters.map(([player, name]) => (

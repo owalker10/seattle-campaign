@@ -61,6 +61,7 @@ function Adversity({ value, onChange, disabled }) {
       /> */}
       <Tooltip title={value}>
         <Flex justify="center" align="center" style={{ flexGrow: 1, flexWrap: 'wrap' }}>
+          {value == 0 && <div /> /* Flex has display: none if there are no children */}
           {[...Array(value).keys()].map((i) => (
             <motion.li
               key={i}
