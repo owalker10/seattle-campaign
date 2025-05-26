@@ -26,6 +26,7 @@ export type CharacterData = {
   status: string;
 };
 
+// default character object
 const createCharacter = (id: string) => ({
   id,
   adversity: 2,
@@ -47,6 +48,8 @@ type Action = {
   };
 }[keyof ReducerValues];
 
+// debounce the supabase write for status so we aren't making one request per character typed
+// we know on load that we need one fn per character
 const debouncedUpsertStatus = Object.fromEntries(
   Object.keys(CHARACTERS).map((id) => [
     id,
@@ -64,85 +67,53 @@ const isDebouncingStatus = Object.fromEntries(Object.keys(CHARACTERS).map((id) =
 
 const baseAtomFamily = atomFamily((id: string) => atom(createCharacter(id)));
 
-// todo: add middleware in the setter to write POSTs (this should make everything optimistic for free?)
-export const characterAtomFamily = atomFamily(
-  (id: string) =>
-    atom(
-      (get) => get(baseAtomFamily(id)),
-      async (get, set, action: Action) => {
-        const prev = get(baseAtomFamily(id));
-        const newData = { ...prev };
-        switch (action.type) {
-          case 'adversity':
-            const adversity = action.newValue;
-            if (adversity < 0) return;
-            newData.adversity = adversity;
-            set(baseAtomFamily(id), newData);
-            if (!action.remote) {
-              await supabase
-                .from('adversity')
-                .upsert({ player: id, adversity, session_id }, { onConflict: 'player' });
-            }
-            break;
-          case 'status':
-            newData.status = action.newValue;
-            set(baseAtomFamily(id), newData);
-            if (!action.remote) {
-              debouncedUpsertStatus[id](action.newValue);
-              isDebouncingStatus[id] = true;
-            }
-            break;
-          case 'stats':
-            const [stat, die] = action.newValue;
-            newData.stats = { ...newData.stats, [stat]: die };
-            set(baseAtomFamily(id), newData);
-            if (!action.remote) {
-              await supabase
-                .from('stats')
-                .upsert({ player: id, stat, die, session_id }, { onConflict: 'player, stat' });
-            }
-            break;
-        }
+export const characterAtomFamily = atomFamily((id: string) =>
+  atom(
+    (get) => get(baseAtomFamily(id)),
+    async (get, set, action: Action) => {
+      const prev = get(baseAtomFamily(id));
+      const newData = { ...prev };
+      // The setter is a reducer
+      switch (action.type) {
+        case 'adversity':
+          const adversity = action.newValue;
+          if (adversity < 0) return;
+          newData.adversity = adversity;
+          set(baseAtomFamily(id), newData);
+          if (!action.remote) {
+            await supabase
+              .from('adversity')
+              .upsert({ player: id, adversity, session_id }, { onConflict: 'player' });
+          }
+          break;
+        case 'status':
+          newData.status = action.newValue;
+          set(baseAtomFamily(id), newData);
+          if (!action.remote) {
+            debouncedUpsertStatus[id](action.newValue);
+            isDebouncingStatus[id] = true;
+          }
+          break;
+        case 'stats':
+          const [stat, die] = action.newValue;
+          newData.stats = { ...newData.stats, [stat]: die };
+          set(baseAtomFamily(id), newData);
+          if (!action.remote) {
+            await supabase
+              .from('stats')
+              .upsert({ player: id, stat, die, session_id }, { onConflict: 'player, stat' });
+          }
+          break;
       }
-    )
-
-  //   atomWithReducer<CharacterData, Action>(
-  //     createCharacter(id),
-  //     (prev: CharacterData, action: Action) => {
-  //       const newData = { ...prev };
-  //       switch (action.type) {
-  //         case 'adversity':
-  //           if (!action.remote) {
-  //             supabase
-  //               .from('adversity')
-  //               .upsert({ player: id, adversity: action.newValue }, { onConflict: 'player' });
-  //           }
-  //           newData.adversity = action.newValue;
-  //           break;
-  //         case 'status':
-  //           if (!action.remote) {
-  //             debouncedUpsertStatus[id](action.newValue);
-  //             isDebouncingStatus[id] = true;
-  //           }
-  //           newData.status = action.newValue;
-  //         case 'stats':
-  //           const [stat, die] = action.newValue;
-  //           if (!action.remote) {
-  //             supabase
-  //               .from('stats')
-  //               .upsert({ player: id, stat, die }, { onConflict: 'player, stat' })
-  //               .then(console.log);
-  //           }
-  //           newData.stats = { ...newData.stats, [stat]: die };
-  //       }
-  //       return newData;
-  //     }
+    }
+  )
 );
 
 const characterAtoms = Object.fromEntries(
   Object.keys(CHARACTERS).map((id) => [id, characterAtomFamily(id)])
 );
 
+// on client load we have to fetch the existing data for each character
 async function initData(
   characterData: Record<string, [CharacterData, (action: Action) => void]>,
   onFinish: () => void
@@ -182,13 +153,14 @@ async function initData(
 }
 
 export function useSupabaseChannel() {
-  // hooks in a loop are safe because the length of characters is constant
+  // hooks in a loop are safe because CHARACTERS is a constant
   const characterData: Record<string, [CharacterData, (action: Action) => void]> =
     Object.fromEntries(Object.entries(characterAtoms).map(([id, atom]) => [id, useAtom(atom)]));
 
   const [loading, setLoading] = React.useState(true);
   const init = React.useRef(false);
 
+  // initialize data once per app mount
   React.useEffect(() => {
     if (!init.current) {
       init.current = true;
@@ -196,11 +168,13 @@ export function useSupabaseChannel() {
     }
   }, [loading, setLoading]);
 
+  // any time any table is updated by another client, update our local state
   const onPayload = (
     payload: RealtimePostgresChangesPayload<{
       [key: string]: any;
     }>
   ) => {
+    // we don't need to handle updates that we made since they're already in our local state
     if ((payload.new as any).session_id == session_id) {
       return;
     }

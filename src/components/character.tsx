@@ -31,16 +31,8 @@ import { useStateWithStorage } from '../util/useStateWithStorage';
 
 const { useToken } = theme;
 
+// displays current adversity tokens as row of icons, with plus and minus buttons
 function Adversity({ value, onChange, disabled }) {
-  //   const onChangeWithValidation = React.useCallback(
-  //     (e: React.ChangeEvent<HTMLInputElement>) => {
-  //       const value = e.target.value;
-  //       const number = Number.parseInt(value);
-  //       if (Number.isNaN(value) || number < 0) return;
-  //       onChange(value);
-  //     },
-  //     [onChange]
-  //   );
   return (
     <Flex align="center">
       <Button
@@ -51,14 +43,6 @@ function Adversity({ value, onChange, disabled }) {
       >
         -
       </Button>
-      {/* <Input
-        value={value}
-        onChange={onChangeWithValidation}
-        size="large"
-        variant="borderless"
-        style={{ flexGrow: 1, textAlign: 'center' }}
-        styles={{ input: { textAlign: 'center', fontSize: 24 } }}
-      /> */}
       <Tooltip title={value}>
         <Flex justify="center" align="center" style={{ flexGrow: 1, flexWrap: 'wrap' }}>
           {value == 0 && <div /> /* Flex has display: none if there are no children */}
@@ -90,6 +74,7 @@ function Adversity({ value, onChange, disabled }) {
   );
 }
 
+// a single row of stat => die
 function Stat({
   stat,
   onChange,
@@ -130,6 +115,7 @@ const icons = {
   grit: <IconShieldHalfFilled />,
 };
 
+// a section containing the 6 stats and their editable die assignments
 export function Stats({
   stats,
   setStat,
@@ -139,6 +125,7 @@ export function Stats({
   setStat: (stat: CharacterStat, die: DieType) => void;
   disabled: boolean;
 }) {
+  // order the stats from largest to smallest die
   const orderedStats = React.useMemo(() => {
     const getNumber = (stat: string) => {
       const die: DieType = stats[stat];
@@ -176,6 +163,7 @@ export function Stats({
   ));
 }
 
+// Card component that displays editable information about each character. If not pinned, card is read-only.
 export function Character({ name, pinned, setPinned, id }) {
   const [character, setCharacter] = useAtom(characterAtomFamily(id));
   const [adversity, setAdversity] = React.useMemo(() => {
@@ -190,7 +178,6 @@ export function Character({ name, pinned, setPinned, id }) {
     return [
       character.status,
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log(e.target.value);
         setCharacter({ type: 'status', newValue: e.target.value });
       },
     ];
