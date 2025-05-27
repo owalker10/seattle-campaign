@@ -1,4 +1,4 @@
-import { UserOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, UserOutlined } from '@ant-design/icons';
 import {
   IconBarbell,
   IconBrain,
@@ -14,6 +14,7 @@ import {
   Collapse,
   Flex,
   Input,
+  Popover,
   Select,
   Space,
   Tooltip,
@@ -24,10 +25,9 @@ const { Text } = Typography;
 import Title from 'antd/es/typography/Title';
 import React from 'react';
 import * as motion from 'motion/react-client';
-import { DICE, STATS } from '../util/constants';
+import { DICE, STAT_DESCRIPTIONS, STATS } from '../util/constants';
 import { CharacterData, CharacterStat, DieType, characterAtomFamily } from '../util/supabase';
 import { useAtom } from 'jotai';
-import { useStateWithStorage } from '../util/useStateWithStorage';
 
 const { useToken } = theme;
 
@@ -74,6 +74,30 @@ function Adversity({ value, onChange, disabled }) {
   );
 }
 
+function Description({
+  statDescription,
+}: {
+  statDescription: { description: string; example: string; magic: string };
+}) {
+  const { token } = useToken();
+  const { description, example, magic } = statDescription;
+  return (
+    <>
+      {description}
+      <br />
+      <span>
+        <span style={{ color: token.colorTextSecondary }}>Example:&nbsp;</span>
+        {example}
+      </span>
+      <br />
+      <span>
+        <span style={{ color: token.colorTextSecondary }}>Types of magic:&nbsp;</span>
+        {magic}
+      </span>
+    </>
+  );
+}
+
 // a single row of stat => die
 function Stat({
   stat,
@@ -86,12 +110,17 @@ function Stat({
   onChange: (stat: CharacterStat, die: DieType) => void;
   disabled: boolean;
 }) {
-  const token = useToken();
+  const { token } = useToken();
   const handleChange = React.useCallback((die: DieType) => onChange(stat, die), [onChange, stat]);
   return (
     <Flex style={{ width: '100%' }} align="center">
-      <Flex style={{ color: token.token.colorBorder, marginRight: 4 }}>{icons[stat]}</Flex>
-      <Text>{stat.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase())}</Text>
+      <Flex style={{ color: token.colorBorder, marginRight: 4 }}>{icons[stat]}</Flex>
+      <Popover content={<Description statDescription={STAT_DESCRIPTIONS[stat]} />}>
+        <Text>{stat.replace(/(?:^|\s|["'([{])+\S/g, (match) => match.toUpperCase())}</Text>
+        <InfoCircleOutlined
+          style={{ fontSize: 12, marginLeft: 4, color: token.colorTextQuaternary }}
+        />
+      </Popover>
       <Select
         defaultValue={undefined}
         value={die}
