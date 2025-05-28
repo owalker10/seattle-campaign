@@ -27,6 +27,33 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory: {
+        Row: {
+          description: string
+          id: string
+          name: string
+          order: string
+          player: string
+          session_id: string | null
+        }
+        Insert: {
+          description?: string
+          id?: string
+          name?: string
+          order?: string
+          player?: string
+          session_id?: string | null
+        }
+        Update: {
+          description?: string
+          id?: string
+          name?: string
+          order?: string
+          player?: string
+          session_id?: string | null
+        }
+        Relationships: []
+      }
       stats: {
         Row: {
           die: string
