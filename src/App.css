@@ -1,6 +1,28 @@
+body {
+  overflow-x: hidden;
+}
 #root {
   width: 100vw;
   height: 100vh;
+}
+
+.card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(300px, 1fr));
+  margin: 16px;
+}
+
+@media (max-width: 1050px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* linear-gradient(180deg, #090909 0%, #1A151D 100%) */

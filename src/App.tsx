@@ -1,5 +1,5 @@
 import './App.css';
-import { Layout, Space, ConfigProvider, theme, Spin, Flex } from 'antd';
+import { Layout, ConfigProvider, theme, Spin, Flex } from 'antd';
 const { Header, Content } = Layout;
 import { Character } from './components/character';
 import React from 'react';
@@ -67,15 +67,7 @@ function App() {
               <Spin size="large" />
             </Flex>
           ) : (
-            <Space
-              size={[8, 16]}
-              wrap
-              style={{ margin: 16 }}
-              align="start"
-              styles={{
-                item: { flex: '1 0 350px', maxWidth: 550, margin: '0 auto' },
-              }}
-            >
+            <div className="card-grid">
               {sortedCharacters.map(([player, name]) => (
                 <motion.div
                   layout
@@ -94,7 +86,7 @@ function App() {
                   />
                 </motion.div>
               ))}
-            </Space>
+            </div>
           )}
         </Content>
       </Layout>
