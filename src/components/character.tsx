@@ -8,8 +8,8 @@ import { useAtom } from 'jotai';
 import { Adversity } from './adversity';
 import { Stats } from './stats';
 import { Inventory } from './inventory';
-import { Reorder } from 'motion/react';
-import { generateKeyBetween } from 'fractional-indexing';
+import { AIMG } from './aimg';
+
 const { Text } = Typography;
 
 const { useToken } = theme;
@@ -50,6 +50,10 @@ export function Character({ name, pinned, setPinned, id }) {
       },
       (itemId: string) => setCharacter({ type: 'delete-inventory', newValue: itemId }),
     ],
+    [character, setCharacter]
+  );
+  const [aimg, setAimg] = React.useMemo(
+    () => [character.aimg, (value: number) => setCharacter({ type: 'aimg', newValue: value })],
     [character, setCharacter]
   );
   const { token } = useToken();
@@ -98,7 +102,9 @@ export function Character({ name, pinned, setPinned, id }) {
           onChange={upsertInventory}
           onDelete={deleteInventory}
         />
-        <Text style={{ marginBottom: 4 }}>Adversity tokens</Text>
+        <Text style={{ marginBottom: -4 }}>AIMG</Text>
+        <AIMG value={aimg} onChange={setAimg} disabled={!pinned} />
+        <Text style={{ marginTop: 4, marginBottom: 4 }}>Adversity tokens</Text>
         <Adversity value={adversity} onChange={setAdversity} disabled={!pinned} />
       </Flex>
     </Card>

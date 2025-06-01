@@ -25,5 +25,10 @@ body {
   }
 }
 
+#aimg .ant-slider-dot {
+  border: none !important;
+  background-color: #0000004f;
+}
+
 /* linear-gradient(180deg, #090909 0%, #1A151D 100%) */
 /* linear-gradient(180deg, #141414 0%, #2A2030 100%) */

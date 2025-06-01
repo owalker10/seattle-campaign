@@ -27,6 +27,21 @@ export type Database = {
         }
         Relationships: []
       }
+      aimg: {
+        Row: {
+          player: string
+          value: number
+        }
+        Insert: {
+          player?: string
+          value?: number
+        }
+        Update: {
+          player?: string
+          value?: number
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           description: string

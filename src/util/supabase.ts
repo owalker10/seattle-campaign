@@ -33,6 +33,7 @@ export type CharacterData = {
   stats: Partial<Record<CharacterStat, DieType>>;
   status: string;
   inventory: InventoryItem[];
+  aimg: number;
 };
 
 // default character object
@@ -42,6 +43,7 @@ const createCharacter = (id: string): CharacterData => ({
   stats: {},
   status: '',
   inventory: [],
+  aimg: 0,
 });
 
 type ReducerValues = {
@@ -51,6 +53,7 @@ type ReducerValues = {
   inventory: InventoryItem[];
   ['inventory-item']: InventoryItem | string;
   ['delete-inventory']: string;
+  aimg: number;
 };
 
 type Action = {
@@ -158,6 +161,15 @@ export const characterAtomFamily = atomFamily((id: string) =>
             await supabase.from('inventory').delete().eq('id', action.newValue);
           }
           break;
+        case 'aimg':
+          newData.aimg = action.newValue;
+          set(baseAtomFamily(id), newData);
+          if (!action.remote) {
+            await supabase
+              .from('aimg')
+              .upsert({ value: action.newValue, player: id }, { onConflict: 'player' });
+          }
+          break;
       }
     }
   )
@@ -218,6 +230,14 @@ async function initData(
           remote: true,
         });
       }
+      // aimg
+      const { data: aimgData } = await supabase
+        .from('aimg')
+        .select('player, value')
+        .eq('player', id);
+      if (aimgData && aimgData.length >= 1) {
+        setAtom({ type: 'aimg', newValue: aimgData[0].value, remote: true });
+      }
     })
   );
   onFinish();
@@ -227,6 +247,12 @@ export function useSupabaseChannel() {
   // hooks in a loop are safe because CHARACTERS is a constant
   const characterData: Record<string, [CharacterData, (action: Action) => void]> =
     Object.fromEntries(Object.entries(characterAtoms).map(([id, atom]) => [id, useAtom(atom)]));
+  const dataRef = React.useRef(characterData);
+
+  // keep ref in sync with the latest data
+  React.useEffect(() => {
+    dataRef.current = characterData;
+  }, [characterData]);
 
   const [loading, setLoading] = React.useState(true);
   const init = React.useRef(false);
@@ -245,6 +271,7 @@ export function useSupabaseChannel() {
       [key: string]: any;
     }>
   ) => {
+    const data = dataRef.current;
     // we don't need to handle updates that we made since they're already in our local state
     if ((payload.new as any).session_id == session_id) {
       return;
@@ -252,16 +279,16 @@ export function useSupabaseChannel() {
     switch (payload.table) {
       case 'adversity': {
         const row = payload.new as Tables['adversity']['Row'];
-        if (!(row.player in characterData)) return;
-        const [, setAtom] = characterData[row.player];
+        if (!(row.player in data)) return;
+        const [, setAtom] = data[row.player];
         setAtom({ type: 'adversity', newValue: row.adversity, remote: true });
         break;
       }
       case 'status': {
         const row = payload.new as Tables['status']['Row'];
-        if (!(row.player in characterData)) return;
+        if (!(row.player in data)) return;
         if (!isDebouncingStatus[row.player]) {
-          const [, setAtom] = characterData[row.player];
+          const [, setAtom] = data[row.player];
           setAtom({ type: 'status', newValue: row.status, remote: true });
         }
         break;
@@ -276,9 +303,9 @@ export function useSupabaseChannel() {
       case 'inventory': {
         if (payload.eventType == 'DELETE') {
           Object.keys(CHARACTERS).some((player: string) => {
-            const inventory = characterData[player][0].inventory;
+            const inventory = data[player][0].inventory;
             if (inventory.find((item) => item.id == payload.old.id)) {
-              const [, setAtom] = characterData[player];
+              const [, setAtom] = data[player];
               setAtom({ type: 'delete-inventory', newValue: payload.old.id });
               return true;
             }
@@ -287,8 +314,8 @@ export function useSupabaseChannel() {
           break;
         }
         const row = payload.new as Tables['inventory']['Row'];
-        if (!(row.player in characterData)) return;
-        const [, setAtom] = characterData[row.player];
+        if (!(row.player in data)) return;
+        const [, setAtom] = data[row.player];
         setAtom({
           type: 'inventory-item',
           newValue: {
@@ -299,6 +326,13 @@ export function useSupabaseChannel() {
           },
           remote: true,
         });
+        break;
+      }
+      case 'aimg': {
+        const row = payload.new as Tables['aimg']['Row'];
+        if (!(row.player in data)) return;
+        const [, setAtom] = data[row.player];
+        setAtom({ type: 'aimg', newValue: row.value, remote: true });
         break;
       }
     }
