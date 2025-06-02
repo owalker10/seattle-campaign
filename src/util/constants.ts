@@ -7,7 +7,7 @@ export const CHARACTERS: Record<string, string> = {
   chris: 'Red',
   sophia: 'Mars',
   grant: 'Tony',
-  claire: 'JJ',
+  claire: 'Jamie',
 };
 if (import.meta.env.DEV) {
   CHARACTERS['test'] = 'Jane Doe';
