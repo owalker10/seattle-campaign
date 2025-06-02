@@ -1,10 +1,13 @@
-import { ConfigProvider, Slider, theme } from 'antd';
+import { ConfigProvider, Slider, SliderSingleProps, theme } from 'antd';
 import * as React from 'react';
 
 const { useToken } = theme;
 
 const GRADIENT = 'linear-gradient(90deg, #727272 0%, #53715E 48.81%, #2EBA62 100%)';
+const formatter: NonNullable<SliderSingleProps['tooltip']>['formatter'] = (value) =>
+  `${Math.abs(value ?? 0)}`;
 
+/** A slider to track AIMG in integers from 3 (gray) to 3 (green). The rail is a gradient from grey to green, and the thumb should have the same color as the part of the rail it's on. */
 export function AIMG({
   value,
   onChange,
@@ -43,7 +46,7 @@ export function AIMG({
           n,
           {
             style: { color: token.colorTextSecondary, fontSize: 12 },
-            label: n,
+            label: Math.abs(n),
           },
         ])
       ),
@@ -80,10 +83,16 @@ export function AIMG({
         max={3}
         marks={marks}
         step={1}
+        tooltip={{ formatter }}
         style={{ filter: disabled ? 'brightness(0.8) saturate(0.9)' : undefined }}
         styles={{
           track: { display: 'none' },
-          rail: { background: GRADIENT },
+          rail: {
+            background: GRADIENT,
+            borderRadius: 4,
+            width: `calc(100% + 8px)`,
+            marginLeft: '-4px',
+          },
         }}
       />
     </ConfigProvider>
