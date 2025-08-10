@@ -7,7 +7,6 @@ import { CHARACTERS, DICE, STATS } from './constants';
 import debounce from 'lodash/debounce';
 import { v4 as uuidv4 } from 'uuid';
 import { generateKeyBetween } from 'fractional-indexing';
-import { get } from 'lodash';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -181,7 +180,7 @@ export const characterAtomFamily = atomFamily((id: string) =>
           if (!action.remote) {
             await supabase
               .from('aimg')
-              .upsert({ value: action.newValue, player: id }, { onConflict: 'player' });
+              .upsert({ value: action.newValue, session_id, player: id }, { onConflict: 'player' });
           }
           break;
       }
