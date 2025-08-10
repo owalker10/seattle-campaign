@@ -9,6 +9,7 @@ import * as motion from 'motion/react-client';
 import { CHARACTERS } from './util/constants';
 import { useSupabaseChannel } from './util/supabase';
 import { SpaceNeedle } from './assets/needle';
+import { EltaisScore } from './components/eltais_score';
 
 // todo:
 // - note taker with quill
@@ -67,26 +68,29 @@ function App() {
               <Spin size="large" />
             </Flex>
           ) : (
-            <div className="card-grid">
-              {sortedCharacters.map(([player, name]) => (
-                <motion.div
-                  layout
-                  key={player}
-                  transition={{
-                    type: 'spring',
-                    damping: 20,
-                    stiffness: 150,
-                  }}
-                >
-                  <Character
-                    name={name}
-                    pinned={player == pinned}
-                    setPinned={setPinned}
-                    id={player}
-                  />
-                </motion.div>
-              ))}
-            </div>
+            <>
+              <EltaisScore />
+              <div className="card-grid">
+                {sortedCharacters.map(([player, name]) => (
+                  <motion.div
+                    layout
+                    key={player}
+                    transition={{
+                      type: 'spring',
+                      damping: 20,
+                      stiffness: 150,
+                    }}
+                  >
+                    <Character
+                      name={name}
+                      pinned={player == pinned}
+                      setPinned={setPinned}
+                      id={player}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </>
           )}
         </Content>
       </Layout>

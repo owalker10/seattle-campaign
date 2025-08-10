@@ -2,11 +2,12 @@ import { RealtimePostgresChangesPayload, createClient } from '@supabase/supabase
 import React from 'react';
 import { Database } from '../../database.types';
 import { atomFamily } from 'jotai/utils';
-import { atom, useAtom } from 'jotai';
+import { atom, useAtom, useSetAtom } from 'jotai';
 import { CHARACTERS, DICE, STATS } from './constants';
 import debounce from 'lodash/debounce';
 import { v4 as uuidv4 } from 'uuid';
 import { generateKeyBetween } from 'fractional-indexing';
+import { get } from 'lodash';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -82,6 +83,19 @@ const debouncedUpsertStatus = Object.fromEntries(
 const isDebouncingStatus = Object.fromEntries(Object.keys(CHARACTERS).map((id) => [id, false]));
 
 const baseAtomFamily = atomFamily((id: string) => atom(createCharacter(id)));
+
+const baseEltaisScoreAtom = atom<number>(135);
+export const eltaisScoreAtom = atom(
+  (get) => get(baseEltaisScoreAtom),
+  async (_, set, payload: { score: number; remote: boolean }) => {
+    set(baseEltaisScoreAtom, payload.score);
+    if (!payload.remote) {
+      await supabase
+        .from('eltais_score')
+        .upsert({ id: 1, score: payload.score, session_id }, { onConflict: 'id' });
+    }
+  }
+);
 
 export const characterAtomFamily = atomFamily((id: string) =>
   atom(
@@ -182,10 +196,21 @@ const characterAtoms = Object.fromEntries(
 // on client load we have to fetch the existing data for each character
 async function initData(
   characterData: Record<string, [CharacterData, (action: Action) => void]>,
+  setEltaisScore: (payload: { score: number; remote: boolean }) => void,
   onFinish: () => void
 ) {
-  await Promise.all(
-    Object.entries(characterData).map(async ([id, [, setAtom]]) => {
+  // this is a global constant, we expect the row id to be `1`
+  const getEltaisScore = async () => {
+    const { data } = await supabase.from('eltais_score').select('score, id').eq('id', 1);
+    if (data && data.length == 1) {
+      setEltaisScore({ score: data[0].score, remote: true });
+    } else if (data && data.length > 1) {
+      console.error('More than one row in eltais_score table');
+    }
+  };
+
+  await Promise.all([
+    ...Object.entries(characterData).map(async ([id, [, setAtom]]) => {
       // adversity
       const { data: adversityData } = await supabase
         .from('adversity')
@@ -238,8 +263,9 @@ async function initData(
       if (aimgData && aimgData.length >= 1) {
         setAtom({ type: 'aimg', newValue: aimgData[0].value, remote: true });
       }
-    })
-  );
+    }),
+    getEltaisScore(),
+  ]);
   onFinish();
 }
 
@@ -248,6 +274,7 @@ export function useSupabaseChannel() {
   const characterData: Record<string, [CharacterData, (action: Action) => void]> =
     Object.fromEntries(Object.entries(characterAtoms).map(([id, atom]) => [id, useAtom(atom)]));
   const dataRef = React.useRef(characterData);
+  const setEltaisScore = useSetAtom(eltaisScoreAtom);
 
   // keep ref in sync with the latest data
   React.useEffect(() => {
@@ -261,7 +288,7 @@ export function useSupabaseChannel() {
   React.useEffect(() => {
     if (!init.current) {
       init.current = true;
-      initData(characterData, () => setLoading(false));
+      initData(characterData, setEltaisScore, () => setLoading(false));
     }
   }, [loading, setLoading]);
 
@@ -296,7 +323,7 @@ export function useSupabaseChannel() {
       case 'stats': {
         const row = payload.new as Tables['stats']['Row'];
         if (!(row.player in characterData)) return;
-        const [, setAtom] = characterData[row.player];
+        const [, setAtom] = data[row.player];
         setAtom({ type: 'stats', newValue: [row.stat, row.die], remote: true });
         break;
       }
@@ -334,6 +361,10 @@ export function useSupabaseChannel() {
         const [, setAtom] = data[row.player];
         setAtom({ type: 'aimg', newValue: row.value, remote: true });
         break;
+      }
+      case 'eltais_score': {
+        const { score } = payload.new as Tables['eltais_score']['Row'];
+        setEltaisScore({ score, remote: true });
       }
     }
   };
