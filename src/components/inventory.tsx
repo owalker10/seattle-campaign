@@ -10,6 +10,7 @@ import { CHARACTERS } from '../util/constants';
 import { Reorder } from 'motion/react';
 
 const { useToken } = theme;
+const { TextArea } = Input;
 
 function InventoryRow({
   item,
@@ -48,7 +49,7 @@ function InventoryRow({
     [setEditingName]
   );
   const handleDescriptionChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setEditingDescription(e.target.value);
     },
     [setEditingDescription]
@@ -91,11 +92,12 @@ function InventoryRow({
               onChange={handleNameChange}
               placeholder="Name"
             />
-            <Input
+            <TextArea
               variant="underlined"
               value={editingDescription}
               onChange={handleDescriptionChange}
               placeholder="Description"
+              autoSize={{ minRows: 1, maxRows: 4 }}
             />
           </>
         ) : (
